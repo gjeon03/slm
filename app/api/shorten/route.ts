@@ -4,6 +4,23 @@ const YOURLS_BASE_URL =
   process.env.YOURLS_BASE_URL || "https://slm.kr/yourls-api.php";
 const YOURLS_SIGNATURE = process.env.YOURLS_SIGNATURE || "";
 
+interface ShortenResponse {
+  status: string;
+  code: string;
+  message: string;
+  errorCode: string;
+  statusCode: number;
+  url: {
+    keyword: string;
+    url: string;
+    title: string;
+    date: string;
+    ip: string;
+  };
+  title: string;
+  shorturl: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -45,15 +62,19 @@ export async function POST(request: NextRequest) {
     });
 
     const expiryResponse = await fetch(`${YOURLS_BASE_URL}?${expiryParams}`);
-    const expiryResult = await expiryResponse.json();
+    const expiryResult = (await expiryResponse.json()) as ShortenResponse;
 
     if (expiryResult.statusCode !== 200) {
       console.warn(`만료일 설정 실패: ${expiryResult.message}`);
     }
 
+    console.log("단축 URL 생성 성공:", createResult);
+
     return NextResponse.json({
       shorturl: createResult.shorturl,
       keyword: createResult.url.keyword,
+      created: createResult.url.date,
+      qrLink: `${createResult.shorturl}.qr`,
       expiry: { age, ageMod },
     });
   } catch (error) {
