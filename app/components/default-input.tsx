@@ -31,7 +31,7 @@ export default function DefaultInput({
         {...props}
         value={value}
         onChange={handleChange}
-        className={`w-full h-11 rounded-lg border border-gray-300 p-2 focus:outline-none bg-white focus:border-[#ffddae] ${
+        className={`w-full h-11 rounded-lg border border-gray-300 p-2 focus:outline-none bg-white focus:border-[#F9CE61] ${
           isError ? "border-red-500" : ""
         }`}
       />

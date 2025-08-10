@@ -16,7 +16,7 @@ export function DefaultSelect({
         aria-describedby={isError ? "error-message" : undefined}
         id={props.id}
         {...props}
-        className={`w-full h-11 rounded-lg border border-gray-300 p-2 focus:outline-none bg-white focus:border-[#ffddae] ${
+        className={`w-full h-11 rounded-lg border border-gray-300 p-2 focus:outline-none bg-white focus:border-[#F9CE61] ${
           isError ? "border-red-500" : ""
         }`}
       >

@@ -165,7 +165,7 @@ export default function Page() {
         {/* Header */}
         <header className="flex items-center justify-between bg-white p-4 shadow-sm ">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#ffbe6b]" />
+            <div className="w-6 h-6 rounded-md bg-[#F9CE61]" />
             <span className="font-semibold tracking-tight">SLM</span>
           </div>
         </header>
@@ -236,7 +236,7 @@ export default function Page() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full cursor-pointer rounded-md bg-[#ffddae] font-extrabold text-white py-2.5 shadow hover:bg-[#ffbe6b] disabled:opacity-60"
+              className="w-full cursor-pointer rounded-md bg-[#ffdd87] font-extrabold text-white py-2.5 shadow hover:bg-[#F9CE61] disabled:opacity-60"
             >
               {loading ? "Generating..." : "Generate Link"}
             </button>
@@ -311,7 +311,7 @@ export default function Page() {
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 border rounded-md py-2 bg-[#ffbe6b] text-white font-bold text-center inline-block leading-8"
+                className="flex-1 border rounded-md py-2 bg-[#F9CE61] text-white font-bold text-center inline-block leading-8"
                 onClick={(e) => {
                   if (!qrLink) {
                     e.preventDefault();
@@ -336,7 +336,7 @@ export default function Page() {
               {recent.map((r) => (
                 <div
                   key={r.id}
-                  className="rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#ffddae] transition-all duration-200 cursor-pointer"
+                  className="rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#F9CE61] transition-all duration-200 cursor-pointer"
                   onClick={() => {
                     setShortUrl(r.shortUrl);
                     setQrLink(r.qrLink || `${r.shortUrl}.qr`);
@@ -352,7 +352,7 @@ export default function Page() {
                 >
                   <div className="flex gap-1 flex-col truncate text-sm">
                     <span>{r.longUrl}</span>
-                    <span className="text-[#ffbe6b] font-bold">
+                    <span className="text-[#F9CE61] font-bold">
                       {r.shortUrl}
                     </span>
                   </div>
