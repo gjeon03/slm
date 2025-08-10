@@ -2,19 +2,14 @@
 
 import { calcExpiresAt, isExpired } from "@/app/utils/expire";
 import { formatToKST } from "@/app/utils/datetime";
-import {
-  cn,
-  labelOf,
-  INPUT_BASE_STYLES,
-  INPUT_ERROR_STYLES,
-  INPUT_NORMAL_STYLES,
-} from "@/app/utils/helpers";
 import { InfoBox } from "@/app/components/InfoBox";
 import { useCreateLink } from "@/app/hooks/useCreateLink";
 import { useDeleteLink } from "@/app/hooks/useDeleteLink";
 import { AgeMod, Recent } from "@/app/types";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import DefaultInput from "@/app/components/default-input";
+import { DefaultSelect } from "@/app/components/default-select";
 
 const LS_KEY = "slm_recent_links";
 
@@ -31,7 +26,16 @@ export default function Page() {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://slm.to";
 
-  const { createLink, loading, error, setError } = useCreateLink({
+  // 개별 필드 에러 상태
+  const [urlError, setUrlError] = useState("");
+  const [ageError, setAgeError] = useState("");
+
+  const {
+    createLink,
+    loading,
+    error: createError,
+    setError,
+  } = useCreateLink({
     onSuccess: (item) => setRecent((prev) => [item, ...prev]),
     origin,
   });
@@ -69,36 +73,60 @@ export default function Page() {
     return MAX_BY_MOD[mod];
   };
 
-  const clampAge = (next: number, mod: AgeMod) => {
-    const max = getMaxAge(mod);
-    if (Number.isNaN(next) || next < 1) return 1;
-    if (next > max) return max;
-    return next;
-  };
-
   const onChangeMod = (val: AgeMod) => {
     setAgeMod(val);
-    setAge((prev) => clampAge(prev, val));
+  };
+
+  const validateFields = () => {
+    let isValid = true;
+
+    // URL 검증
+    setUrlError("");
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setUrlError("URL은 필수입니다.");
+      isValid = false;
+    } else if (!/^https?:\/\//i.test(trimmed)) {
+      setUrlError("http:// 또는 https:// 로 시작해야 합니다.");
+      isValid = false;
+    }
+
+    // Age 검증 - 30일 제한 체크
+    setAgeError("");
+    const totalMinutes =
+      ageMod === "min" ? age : ageMod === "hr" ? age * 60 : age * 24 * 60;
+    const maxMinutes = 30 * 24 * 60; // 30일 = 43,200분
+
+    if (!age || age < 1) {
+      setAgeError("1 이상의 숫자를 입력하세요.");
+      isValid = false;
+    } else if (totalMinutes > maxMinutes) {
+      // 각 단위에 맞는 에러 메시지
+      let errorMessage = "";
+      if (ageMod === "min") {
+        errorMessage = "최대 43,200분(30일)까지 가능합니다.";
+      } else if (ageMod === "hr") {
+        errorMessage = "최대 720시간(30일)까지 가능합니다.";
+      } else {
+        errorMessage = "최대 30일까지 가능합니다.";
+      }
+      setAgeError(errorMessage);
+      isValid = false;
+    }
+
+    return isValid;
   };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    const trimmed = url.trim();
-    if (!trimmed) return setError("URL은 필수입니다.");
-    if (!/^https?:\/\//i.test(trimmed))
-      return setError("http:// 또는 https:// 로 시작해야 합니다.");
-
-    const max = getMaxAge(ageMod);
-    if (!age || age < 1) return setError("만료 숫자를 1 이상으로 입력하세요.");
-    if (age > max)
-      return setError(
-        `${labelOf(ageMod)} 최대 ${max.toLocaleString()}까지 가능합니다.`
-      );
+    if (!validateFields()) {
+      return;
+    }
 
     try {
-      const result = await createLink(trimmed, age, ageMod);
+      const result = await createLink(url.trim(), age, ageMod);
 
       setShortUrl(result.shortUrl);
       setQrLink(result.qrLink);
@@ -108,6 +136,9 @@ export default function Page() {
       // url/age만 리셋, 단위는 유지
       setUrl("");
       setAge(1);
+      // 성공시 에러도 초기화
+      setUrlError("");
+      setAgeError("");
     } catch {
       // 에러는 이미 createLink 훅에서 처리됨
     }
@@ -129,7 +160,7 @@ export default function Page() {
   const ageMax = getMaxAge(ageMod);
 
   return (
-    <div className="min-h-dvh bg-white text-gray-900">
+    <div className="min-h-dvh bg-[#F9FAFB] text-gray-900">
       <div className="mx-auto w-full max-w-md p-4 md:p-6 space-y-6">
         {/* Header */}
         <header className="flex items-center justify-between">
@@ -147,27 +178,21 @@ export default function Page() {
         </header>
 
         {/* Form */}
-        <form
-          onSubmit={onSubmit}
-          noValidate
-          className="rounded-2xl border bg-white shadow-sm p-4 md:p-5 space-y-4"
-        >
-          <div className="space-y-1">
+        <form onSubmit={onSubmit} noValidate className="p-2">
+          <div className="space-y-1 flex flex-col">
             <label className="text-sm text-gray-600" htmlFor="url">
               Enter Long URL
             </label>
-            <input
+            <DefaultInput
               id="url"
               type="url"
               inputMode="url"
-              placeholder="https://example.com/very-long-url"
-              className={cn(
-                INPUT_BASE_STYLES,
-                !!error && !url ? INPUT_ERROR_STYLES : INPUT_NORMAL_STYLES
-              )}
+              placeholder="https://example.com"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               required
+              isError={!!urlError}
+              errorMessage={urlError}
             />
           </div>
 
@@ -176,42 +201,40 @@ export default function Page() {
               Expiration
             </label>
             <div className="flex gap-2">
-              <input
+              <DefaultInput
                 id="age"
                 type="number"
-                className={cn(INPUT_BASE_STYLES, INPUT_NORMAL_STYLES, "w-1/2")}
                 min={1}
                 max={ageMax}
                 value={age}
-                onChange={(e) =>
-                  setAge(clampAge(Number(e.target.value), ageMod))
-                }
+                onChange={(e) => {
+                  const newValue = Number(e.target.value) || 1;
+                  setAge(newValue);
+                }}
                 required
+                className="flex-1"
+                isError={!!ageError}
+                errorMessage={ageError}
               />
-              <select
+              <DefaultSelect
                 id="ageMod"
-                className={cn(
-                  INPUT_BASE_STYLES,
-                  INPUT_NORMAL_STYLES,
-                  "w-1/2 bg-white"
-                )}
                 value={ageMod}
                 onChange={(e) => onChangeMod(e.target.value as AgeMod)}
                 required
               >
-                <option value="min">분 (최대 43,200)</option>
-                <option value="hr">시 (최대 720)</option>
-                <option value="day">일 (최대 30)</option>
-              </select>
+                <option value="min">min</option>
+                <option value="hr">hr</option>
+                <option value="day">day</option>
+              </DefaultSelect>
             </div>
             <p className="text-xs text-gray-500">
               * 총 만료시간은 30일을 초과할 수 없습니다.
             </p>
           </div>
 
-          {error && (
+          {createError && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
-              {error}
+              {createError}
             </div>
           )}
 
