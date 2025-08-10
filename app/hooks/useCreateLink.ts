@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { AgeMod, Recent } from "@/app/types";
-import { cryptoRandomId, makeCode } from "@/app/utils/helpers";
 
 interface UseCreateLinkOptions {
   onSuccess?: (link: Recent) => void;
@@ -26,11 +25,7 @@ export function useCreateLink({ onSuccess, origin }: UseCreateLinkOptions) {
 
       if (!res.ok) throw new Error(json?.error || "Failed to shorten");
 
-      const code =
-        json.keyword ||
-        json.code ||
-        json.shorturl?.split("/").pop() ||
-        makeCode(7);
+      const code = json.keyword || json.code || json.shorturl?.split("/").pop();
       const short = json.shorturl || `${origin}/${code}`;
       const createdISO =
         json.createdAt ||
@@ -40,7 +35,6 @@ export function useCreateLink({ onSuccess, origin }: UseCreateLinkOptions) {
       const qr = json.qrLink || `${short}.qr`;
 
       const item: Recent = {
-        id: cryptoRandomId(),
         keyword: code,
         longUrl: url,
         shortUrl: short,
