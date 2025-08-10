@@ -1,8 +1,7 @@
 // app/api/shorten/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const YOURLS_BASE_URL =
-  process.env.YOURLS_BASE_URL || "https://slm.kr/yourls-api.php";
+const YOURLS_BASE_URL = process.env.YOURLS_BASE_URL;
 const YOURLS_SIGNATURE = process.env.YOURLS_SIGNATURE || "";
 
 type AgeMod = "min" | "hr" | "day";
@@ -151,7 +150,9 @@ export async function POST(request: NextRequest) {
     let expiresAt: string | undefined;
     if (!isNaN(lifeSec) && lifeSec > 0 && createResult.url?.date) {
       // createResult.url.date가 UTC 형식이 아닐 수 있으므로 UTC로 파싱
-      const createdDate = new Date(createResult.url.date + (createResult.url.date.includes('Z') ? '' : 'Z'));
+      const createdDate = new Date(
+        createResult.url.date + (createResult.url.date.includes("Z") ? "" : "Z")
+      );
       expiresAt = new Date(
         createdDate.getTime() + lifeSec * 1000
       ).toISOString();
