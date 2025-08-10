@@ -23,9 +23,6 @@ export default function Page() {
   const [expiresOn, setExpiresOn] = useState("");
   const [recent, setRecent] = useState<Recent[]>([]);
 
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://slm.to";
-
   // 개별 필드 에러 상태
   const [urlError, setUrlError] = useState("");
   const [ageError, setAgeError] = useState("");
@@ -37,7 +34,6 @@ export default function Page() {
     setError,
   } = useCreateLink({
     onSuccess: (item) => setRecent((prev) => [item, ...prev]),
-    origin,
   });
 
   const { deleteLink } = useDeleteLink({

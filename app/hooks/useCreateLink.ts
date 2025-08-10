@@ -4,10 +4,9 @@ import { cryptoRandomId } from "@/app/utils/helpers";
 
 interface UseCreateLinkOptions {
   onSuccess?: (link: Recent) => void;
-  origin: string;
 }
 
-export function useCreateLink({ onSuccess, origin }: UseCreateLinkOptions) {
+export function useCreateLink({ onSuccess }: UseCreateLinkOptions) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,7 +26,7 @@ export function useCreateLink({ onSuccess, origin }: UseCreateLinkOptions) {
       if (!res.ok) throw new Error(json?.error || "Failed to shorten");
 
       const code = json.keyword || json.code || json.shorturl?.split("/").pop();
-      const short = json.shorturl || `${origin}/${code}`;
+      const short = json.shorturl || `https://slm.kr/${code}`;
       const createdISO =
         json.createdAt ||
         json.created ||
