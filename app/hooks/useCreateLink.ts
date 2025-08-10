@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AgeMod, Recent } from "@/app/types";
+import { cryptoRandomId } from "@/app/utils/helpers";
 
 interface UseCreateLinkOptions {
   onSuccess?: (link: Recent) => void;
@@ -35,6 +36,7 @@ export function useCreateLink({ onSuccess, origin }: UseCreateLinkOptions) {
       const qr = json.qrLink || `${short}.qr`;
 
       const item: Recent = {
+        id: cryptoRandomId(),
         keyword: code,
         longUrl: url,
         shortUrl: short,
