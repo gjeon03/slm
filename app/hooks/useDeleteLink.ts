@@ -1,4 +1,3 @@
-import { isExpired } from "@/app/utils/expire";
 import { Recent } from "@/app/types";
 
 interface UseDeleteLinkOptions {
@@ -7,11 +6,12 @@ interface UseDeleteLinkOptions {
 
 export function useDeleteLink({ onSuccess }: UseDeleteLinkOptions = {}) {
   const deleteLink = async (item: Recent) => {
+    // 무조건 한번 접근을 해야 서버에서 제거되어서 일단 무조건 제거하도록함
     // 만료되었으면 로컬에서만 제거
-    if (isExpired(item)) {
-      onSuccess?.(item);
-      return;
-    }
+    // if (isExpired(item)) {
+    //   onSuccess?.(item);
+    //   return;
+    // }
 
     // 만료 전: 서버 삭제 → 성공 시 로컬에서도 제거
     try {

@@ -228,12 +228,12 @@ export default function Page() {
         <section className="rounded-2xl border bg-white shadow-sm p-4 md:p-5 space-y-4">
           {qrLink ? (
             <div className="grid place-items-center">
-              <Image 
-                src={qrLink} 
-                alt="QR Code" 
-                width={176} 
-                height={176} 
-                className="w-44 h-44" 
+              <Image
+                src={qrLink}
+                alt="QR Code"
+                width={176}
+                height={176}
+                className="w-44 h-44"
               />
             </div>
           ) : (
@@ -326,9 +326,8 @@ export default function Page() {
                   <button
                     className="rounded-lg border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
                     onClick={() => handleDelete(r)}
-                    title={isExpired(r) ? "로컬에서 제거" : "서버에서 삭제"}
                   >
-                    {isExpired(r) ? "Remove" : "Delete"}
+                    {"Delete"}
                   </button>
                 </div>
               </div>
