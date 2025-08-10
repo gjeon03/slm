@@ -5,7 +5,7 @@ import { formatToKST } from "@/app/utils/datetime";
 import { useCreateLink } from "@/app/hooks/useCreateLink";
 import { useDeleteLink } from "@/app/hooks/useDeleteLink";
 import { AgeMod, Recent } from "@/app/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import DefaultInput from "@/app/components/default-input";
 import { DefaultSelect } from "@/app/components/default-select";
@@ -27,6 +27,9 @@ export default function Page() {
   // 개별 필드 에러 상태
   const [urlError, setUrlError] = useState("");
   const [ageError, setAgeError] = useState("");
+
+  // Preview 영역 참조
+  const previewRef = useRef<HTMLElement>(null);
 
   const {
     createLink,
@@ -240,7 +243,10 @@ export default function Page() {
           </form>
 
           {/* Result */}
-          <section className="rounded-xl bg-white shadow-sm p-4 md:p-5 space-y-4">
+          <section
+            ref={previewRef}
+            className="rounded-xl bg-white shadow-sm p-4 md:p-5 space-y-4"
+          >
             {qrLink ? (
               <div className="grid place-items-center">
                 <Image
@@ -336,6 +342,12 @@ export default function Page() {
                     setQrLink(r.qrLink || `${r.shortUrl}.qr`);
                     setCreatedAt(r.createdAt);
                     setExpiresOn(r.expiresAt || "");
+
+                    // Preview 영역으로 스크롤
+                    previewRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
                   }}
                 >
                   <div className="flex gap-1 flex-col truncate text-sm">
