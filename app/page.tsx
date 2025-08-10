@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import DefaultInput from "@/app/components/default-input";
 import { DefaultSelect } from "@/app/components/default-select";
-import { Copy } from "feather-icons-react";
+import { Copy, Trash, Trash2 } from "feather-icons-react";
 import InfoItem from "@/app/components/info-item";
 // import { Copy } from "feather-icons";
 
@@ -331,9 +331,15 @@ export default function Page() {
               {recent.map((r) => (
                 <div
                   key={r.id}
-                  className="rounded-xl border p-3 flex items-center justify-between gap-3"
+                  className="rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#ffddae] transition-all duration-200 cursor-pointer"
+                  onClick={() => {
+                    setShortUrl(r.shortUrl);
+                    setQrLink(r.qrLink || `${r.shortUrl}.qr`);
+                    setCreatedAt(r.createdAt);
+                    setExpiresOn(r.expiresAt || "");
+                  }}
                 >
-                  <button
+                  {/* <button
                     className="flex-1 text-left"
                     onClick={() => {
                       setShortUrl(r.shortUrl);
@@ -342,40 +348,40 @@ export default function Page() {
                       setExpiresOn(r.expiresAt || "");
                     }}
                     title="Preview에서 보기"
-                  >
-                    <div className="truncate text-sm">{r.longUrl}</div>
-                    <div className="mt-0.5 text-xs text-gray-500 flex flex-wrap items-center gap-2">
-                      <span className="truncate max-w-[140px] sm:max-w-xs">
-                        {r.shortUrl}
-                      </span>
-                      <span>•</span>
-                      <span>Created {formatToKST(r.createdAt, true)}</span>
-                      {calcExpiresAt(r) && (
-                        <>
-                          <span>•</span>
-                          <span>
-                            Expires {formatToKST(calcExpiresAt(r)!, true)}{" "}
-                            {isExpired(r) && "(expired)"}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </button>
+                  > */}
+                  <div className="flex gap-1 flex-col truncate text-sm">
+                    <span>{r.longUrl}</span>
+                    <span className="text-[#ffbe6b] font-bold">
+                      {r.shortUrl}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-gray-500 flex flex-wrap items-center justify-between gap-2">
+                    {/* <span className="truncate max-w-[140px] sm:max-w-xs">
+                      {r.shortUrl}
+                    </span> */}
+                    <span>Created: {formatToKST(r.createdAt, true)}</span>
+                    <span>Expires: {formatToKST(calcExpiresAt(r)!, true)}</span>
+                  </div>
+                  {/* </button> */}
 
-                  <div className="flex gap-2 shrink-0">
+                  {/* <div className="flex gap-2 shrink-0">
                     <button
                       className="rounded-lg border px-3 py-1.5 text-sm"
                       onClick={() => navigator.clipboard.writeText(r.shortUrl)}
                     >
                       Copy
-                    </button>
-                    <button
-                      className="rounded-lg border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-                      onClick={() => handleDelete(r)}
-                    >
-                      {"Delete"}
-                    </button>
-                  </div>
+                    </button> */}
+                  <button
+                    className="absolute top-2 right-2 rounded-lg px-3 py-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleDelete(r);
+                    }}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  {/* </div> */}
                 </div>
               ))}
             </div>
