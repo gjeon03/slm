@@ -44,9 +44,9 @@ async function yourlsGet(params: Record<string, string>): Promise<YourlsRes> {
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { keyword: string } }
+  context: { params: Promise<{ keyword: string }> }
 ) {
-  const { keyword } = params;
+  const { keyword } = await context.params;
 
   if (!keyword) {
     return NextResponse.json({ error: "keyword required" }, { status: 400 });

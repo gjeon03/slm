@@ -1,22 +1,20 @@
 "use client";
 
-import { calcExpiresAt } from "@/app/utils/expire";
-import { formatToKST } from "@/app/utils/datetime";
 import { useCreateLink } from "@/app/hooks/useCreateLink";
 import { useDeleteLink } from "@/app/hooks/useDeleteLink";
 import { AgeMod, Recent } from "@/app/types";
-import { useEffect, useState, useRef, useMemo } from "react";
-import Image from "next/image";
-import DefaultInput from "@/app/components/default-input";
-import { DefaultSelect } from "@/app/components/default-select";
-import { Copy, Trash2, Check } from "feather-icons-react";
-import InfoItem from "@/app/components/info-item";
+import { useEffect, useState, useRef, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/app/utils/helpers";
+import LinkForm from "@/app/components/link-form";
+import PreviewSection from "@/app/components/preview-section";
+import RecentLinks from "@/app/components/recent-links";
+import Header from "@/app/components/header";
+import Footer from "@/app/components/footer";
+import LoadingFallback from "@/app/components/loading-fallback";
 
 const LS_KEY = "slm_recent_links";
 
-export default function Page() {
+function PageContent() {
   const [url, setUrl] = useState("");
   const [ageMod, setAgeMod] = useState<AgeMod>("min");
   const [age, setAge] = useState<number>(1);
@@ -55,20 +53,6 @@ export default function Page() {
     onSuccess: (item) =>
       setRecent((prev) => prev.filter((x) => x.id !== item.id)),
   });
-
-  const MAX_BY_MOD: Record<AgeMod, number> = {
-    min: 43200, // 30일
-    hr: 720, // 30일
-    day: 30,
-  };
-
-  const getMaxAge = (mod: AgeMod) => {
-    return MAX_BY_MOD[mod];
-  };
-
-  const onChangeMod = (val: AgeMod) => {
-    setAgeMod(val);
-  };
 
   const validateFields = () => {
     let isValid = true;
@@ -132,18 +116,18 @@ export default function Page() {
     }
   };
 
-  const handleDelete = (item: Recent) => {
+  const handleDelete = useCallback((item: Recent) => {
     deleteLink(item);
     if (selectedId === item.id) router.replace("/", { scroll: false });
-  };
+  }, [deleteLink, selectedId, router]);
 
-  const handleCopy = (url: string) => {
+  const handleCopy = useCallback((url: string) => {
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     setTimeout(() => setCopiedUrl(""), 2000);
-  };
+  }, []);
 
-  const handleClickItem = (item: Recent) => {
+  const handleClickItem = useCallback((item: Recent) => {
     router.replace(`/?id=${encodeURIComponent(item.id)}`, { scroll: false });
 
     // 스크롤
@@ -151,7 +135,7 @@ export default function Page() {
       behavior: "smooth",
       block: "start",
     });
-  };
+  }, [router]);
 
   useEffect(() => {
     // LocalStorage 상태 복원
@@ -182,317 +166,53 @@ export default function Page() {
     }
   }, [searchParams, recent, router]);
 
-  const ageMax = getMaxAge(ageMod);
-
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <div className="mx-auto w-full max-w-lg space-y-6 bg-[#F9FAFB] h-full">
-        {/* Header */}
-        <header className="flex items-center justify-between bg-white p-4 shadow-sm ">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#F9CE61]">
-              <Image
-                src="/favicon.ico"
-                alt="Logo"
-                width={24}
-                height={24}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className="font-semibold tracking-tight">SLM</span>
-          </div>
-        </header>
+        <Header />
 
-        {/* Content */}
         <div className="px-4 flex flex-col gap-6">
-          {/* Form */}
-          <form onSubmit={onSubmit} noValidate className="space-y-3">
-            <div className="space-y-1 flex flex-col">
-              <label className="text-sm text-gray-600" htmlFor="url">
-                Enter Long URL
-              </label>
-              <DefaultInput
-                id="url"
-                type="url"
-                inputMode="url"
-                placeholder="https://example.com"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-                isError={!!urlError}
-                errorMessage={urlError}
-              />
-            </div>
+          <LinkForm
+            url={url}
+            setUrl={setUrl}
+            age={age}
+            setAge={setAge}
+            ageMod={ageMod}
+            setAgeMod={setAgeMod}
+            urlError={urlError}
+            ageError={ageError}
+            createError={createError}
+            loading={loading}
+            onSubmit={onSubmit}
+          />
 
-            <div className="space-y-1">
-              <label className="text-sm text-gray-600" htmlFor="age">
-                Expiration
-              </label>
-              <div className="flex gap-2">
-                <DefaultInput
-                  id="age"
-                  type="number"
-                  min={1}
-                  max={ageMax}
-                  value={age}
-                  onChange={(e) => {
-                    const newValue = Number(e.target.value) || 1;
-                    setAge(newValue);
-                  }}
-                  required
-                  className="flex-1"
-                  isError={!!ageError}
-                  errorMessage={ageError}
-                />
-                <DefaultSelect
-                  id="ageMod"
-                  value={ageMod}
-                  onChange={(e) => onChangeMod(e.target.value as AgeMod)}
-                  required
-                >
-                  <option value="min">min</option>
-                  <option value="hr">hr</option>
-                  <option value="day">day</option>
-                </DefaultSelect>
-              </div>
-              <p className="text-xs text-gray-500">
-                * 총 만료시간은 30일을 초과할 수 없습니다.
-              </p>
-            </div>
-
-            {createError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
-                {createError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full cursor-pointer rounded-md bg-[#ffdd87] font-extrabold text-white py-2.5 shadow hover:bg-[#F9CE61] disabled:opacity-60"
-            >
-              {loading ? "Generating..." : "Generate Link"}
-            </button>
-          </form>
-
-          {/* Result */}
-          <section
+          <PreviewSection
             ref={previewRef}
-            className="rounded-xl bg-white shadow-sm p-4 md:p-5 space-y-4 relative"
-          >
-            {selectedItem ? (
-              <div className="grid place-items-center">
-                <Image
-                  src={selectedItem.qrLink || ""}
-                  alt="QR Code"
-                  width={176}
-                  height={176}
-                  className="w-44 h-44"
-                />
-              </div>
-            ) : (
-              <div className="w-44 h-44 mx-auto rounded-xl bg-gradient-to-br from-gray-100 to-gray-300 grid place-items-center">
-                <span className="text-xs text-gray-500 font-bold">
-                  QR Preview
-                </span>
-              </div>
-            )}
-            <div className="space-y-2">
-              <InfoItem
-                title="Long URL"
-                value={selectedItem?.longUrl}
-                icon={
-                  <button
-                    className={`cursor-pointer hover:bg-white rounded-b-xl transition-colors ${
-                      copiedUrl === selectedItem?.longUrl
-                        ? "text-green-600"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      selectedItem?.longUrl && handleCopy(selectedItem.longUrl)
-                    }
-                  >
-                    {copiedUrl === selectedItem?.longUrl ? (
-                      <Check size={15} />
-                    ) : (
-                      <Copy size={15} />
-                    )}
-                  </button>
-                }
-              />
-              <InfoItem
-                title="Short Link"
-                value={selectedItem?.shortUrl}
-                icon={
-                  <button
-                    className={`cursor-pointer hover:bg-white rounded-b-xl transition-colors ${
-                      copiedUrl === selectedItem?.shortUrl
-                        ? "text-green-600"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      selectedItem?.shortUrl &&
-                      handleCopy(selectedItem.shortUrl)
-                    }
-                  >
-                    {copiedUrl === selectedItem?.shortUrl ? (
-                      <Check size={15} />
-                    ) : (
-                      <Copy size={15} />
-                    )}
-                  </button>
-                }
-              />
-              <InfoItem
-                title="Created At"
-                value={
-                  selectedItem?.createdAt
-                    ? formatToKST(selectedItem.createdAt, true)
-                    : "—"
-                }
-              />
-              <InfoItem
-                title="Expires On"
-                value={
-                  selectedItem?.expiresAt
-                    ? formatToKST(selectedItem.expiresAt, true)
-                    : "—"
-                }
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                className="flex-1 rounded-md py-2 border border-gray-200 font-bold cursor-pointer"
-                onClick={() => {
-                  if (selectedItem?.shortUrl) {
-                    window.open(
-                      selectedItem.shortUrl,
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }
-                }}
-              >
-                Open Link
-              </button>
-              <a
-                href={
-                  selectedItem?.qrLink
-                    ? `/api/download-qr?url=${encodeURIComponent(
-                        selectedItem.qrLink
-                      )}&filename=qr-code-${
-                        selectedItem.shortUrl.split("/").pop() || "download"
-                      }.png`
-                    : "#"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 border rounded-md py-2 bg-[#F9CE61] text-white font-bold text-center inline-block leading-8"
-                onClick={(e) => {
-                  if (!selectedItem?.qrLink) {
-                    e.preventDefault();
-                    return;
-                  }
-                }}
-              >
-                Save QR
-              </a>
-            </div>
-            <button
-              className="absolute top-2 right-2 rounded-lg p-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
+            selectedItem={selectedItem}
+            copiedUrl={copiedUrl}
+            handleCopy={handleCopy}
+            handleDelete={handleDelete}
+          />
 
-                const currentItem = recent.find(
-                  (r) => r.shortUrl === selectedItem?.shortUrl
-                );
-                if (currentItem) {
-                  handleDelete(currentItem);
-                }
-              }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </section>
+          <RecentLinks
+            recent={recent}
+            selectedId={selectedId}
+            copiedUrl={copiedUrl}
+            handleClickItem={handleClickItem}
+            handleCopy={handleCopy}
+          />
 
-          {/* Recent Links (LocalStorage) */}
-          <section className="space-y-3">
-            <h2 className="font-bold">Recent Links</h2>
-            <div className="space-y-2">
-              {recent.length === 0 && (
-                <div className="text-sm text-gray-500">
-                  아직 생성된 링크가 없습니다.
-                </div>
-              )}
-              {recent.map((r) => (
-                <div
-                  key={r.id}
-                  className={cn(
-                    `rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#F9CE61] transition-all duration-200 cursor-pointer`,
-                    {
-                      "ring-2 ring-[#F9CE61]": selectedId === r.id,
-                    }
-                  )}
-                  onClick={() => handleClickItem(r)}
-                >
-                  <div className="flex gap-1 flex-col truncate text-sm">
-                    <span>{r.longUrl}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#F9CE61] font-bold">
-                        {r.shortUrl}
-                      </span>
-                      <button
-                        className={`cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 transition-colors ${
-                          copiedUrl === r.shortUrl
-                            ? "text-green-600"
-                            : "text-gray-500"
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopy(r.shortUrl);
-                        }}
-                      >
-                        {copiedUrl === r.shortUrl ? (
-                          <Check size={12} />
-                        ) : (
-                          <Copy size={12} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-0.5 text-xs text-gray-500 flex flex-wrap items-center justify-between gap-2">
-                    <span>Created: {formatToKST(r.createdAt, true)}</span>
-                    <span>Expires: {formatToKST(calcExpiresAt(r)!, true)}</span>
-                  </div>
-                  <button
-                    className="absolute top-2 right-2 rounded-lg p-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleDelete(r);
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <footer className="py-8 text-center text-xs text-gray-400 space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              <span>Made with ❤️ by</span>
-              <a
-                href="mailto:bygimbap@gmail.com"
-                className="text-[#ffbe6b] hover:text-[#ffddae] transition-colors"
-              >
-                bygimbap
-              </a>
-            </div>
-          </footer>
+          <Footer />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PageContent />
+    </Suspense>
   );
 }
