@@ -1,6 +1,6 @@
 "use client";
 
-import { calcExpiresAt, isExpired } from "@/app/utils/expire";
+import { calcExpiresAt } from "@/app/utils/expire";
 import { formatToKST } from "@/app/utils/datetime";
 import { useCreateLink } from "@/app/hooks/useCreateLink";
 import { useDeleteLink } from "@/app/hooks/useDeleteLink";
@@ -9,9 +9,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import DefaultInput from "@/app/components/default-input";
 import { DefaultSelect } from "@/app/components/default-select";
-import { Copy, Trash, Trash2 } from "feather-icons-react";
+import { Copy, Trash2 } from "feather-icons-react";
 import InfoItem from "@/app/components/info-item";
-// import { Copy } from "feather-icons";
 
 const LS_KEY = "slm_recent_links";
 
@@ -339,16 +338,6 @@ export default function Page() {
                     setExpiresOn(r.expiresAt || "");
                   }}
                 >
-                  {/* <button
-                    className="flex-1 text-left"
-                    onClick={() => {
-                      setShortUrl(r.shortUrl);
-                      setQrLink(r.qrLink || `${r.shortUrl}.qr`);
-                      setCreatedAt(r.createdAt);
-                      setExpiresOn(r.expiresAt || "");
-                    }}
-                    title="Preview에서 보기"
-                  > */}
                   <div className="flex gap-1 flex-col truncate text-sm">
                     <span>{r.longUrl}</span>
                     <span className="text-[#ffbe6b] font-bold">
@@ -356,21 +345,9 @@ export default function Page() {
                     </span>
                   </div>
                   <div className="mt-0.5 text-xs text-gray-500 flex flex-wrap items-center justify-between gap-2">
-                    {/* <span className="truncate max-w-[140px] sm:max-w-xs">
-                      {r.shortUrl}
-                    </span> */}
                     <span>Created: {formatToKST(r.createdAt, true)}</span>
                     <span>Expires: {formatToKST(calcExpiresAt(r)!, true)}</span>
                   </div>
-                  {/* </button> */}
-
-                  {/* <div className="flex gap-2 shrink-0">
-                    <button
-                      className="rounded-lg border px-3 py-1.5 text-sm"
-                      onClick={() => navigator.clipboard.writeText(r.shortUrl)}
-                    >
-                      Copy
-                    </button> */}
                   <button
                     className="absolute top-2 right-2 rounded-lg px-3 py-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
                     onClick={(e) => {
@@ -381,14 +358,21 @@ export default function Page() {
                   >
                     <Trash2 size={18} />
                   </button>
-                  {/* </div> */}
                 </div>
               ))}
             </div>
           </section>
 
-          <footer className="py-8 text-center text-xs text-gray-400">
-            UI Prototype · TailwindCSS · LocalStorage
+          <footer className="py-8 text-center text-xs text-gray-400 space-y-2">
+            <div className="flex items-center justify-center gap-2">
+              <span>Made with ❤️ by</span>
+              <a
+                href="mailto:bygimbap@gmail.com"
+                className="text-[#ffbe6b] hover:text-[#ffddae] transition-colors"
+              >
+                bygimbap
+              </a>
+            </div>
           </footer>
         </div>
       </div>
