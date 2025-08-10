@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 interface DefaultInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   isError?: boolean;
@@ -11,15 +9,6 @@ export default function DefaultInput({
   errorMessage,
   ...props
 }: DefaultInputProps) {
-  const [value, setValue] = useState(props.value || "");
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-    if (props.onChange) {
-      props.onChange(e);
-    }
-  };
-
   return (
     <div className={`relative flex flex-col  ${props.className || ""}`}>
       <input
@@ -29,8 +18,6 @@ export default function DefaultInput({
         aria-describedby={isError ? "error-message" : undefined}
         id={props.id}
         {...props}
-        value={value}
-        onChange={handleChange}
         className={`w-full h-11 rounded-lg border border-gray-300 p-2 focus:outline-none bg-white focus:border-[#F9CE61] ${
           isError ? "border-red-500" : ""
         }`}

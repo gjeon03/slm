@@ -130,6 +130,10 @@ export default function Page() {
 
   const handleDelete = (item: Recent) => {
     deleteLink(item);
+    setShortUrl("");
+    setQrLink("");
+    setCreatedAt("");
+    setExpiresOn("");
   };
 
   const handleCopy = (url: string) => {
@@ -156,15 +160,6 @@ export default function Page() {
     } catch {}
   }, [recent]);
 
-  // const qrPlaceholder = useMemo(
-  //   () => (
-  //     <div className="w-44 h-44 mx-auto rounded bg-gradient-to-br from-gray-100 to-gray-200 grid place-items-center">
-  //       <span className="text-xs text-gray-500">QR Preview</span>
-  //     </div>
-  //   ),
-  //   []
-  // );
-
   const ageMax = getMaxAge(ageMod);
 
   return (
@@ -186,7 +181,7 @@ export default function Page() {
           </div>
         </header>
 
-        {/* Body */}
+        {/* Content */}
         <div className="px-4 flex flex-col gap-6">
           {/* Form */}
           <form onSubmit={onSubmit} noValidate className="space-y-3">
@@ -261,7 +256,7 @@ export default function Page() {
           {/* Result */}
           <section
             ref={previewRef}
-            className="rounded-xl bg-white shadow-sm p-4 md:p-5 space-y-4"
+            className="rounded-xl bg-white shadow-sm p-4 md:p-5 space-y-4 relative"
           >
             {qrLink ? (
               <div className="grid place-items-center">
@@ -342,6 +337,20 @@ export default function Page() {
                 Save QR
               </a>
             </div>
+            <button
+              className="absolute top-2 right-2 rounded-lg p-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                const currentItem = recent.find((r) => r.shortUrl === shortUrl);
+                if (currentItem) {
+                  handleDelete(currentItem);
+                }
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
           </section>
 
           {/* Recent Links (LocalStorage) */}
