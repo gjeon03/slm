@@ -9,7 +9,7 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import DefaultInput from "@/app/components/default-input";
 import { DefaultSelect } from "@/app/components/default-select";
-import { Copy, Trash2 } from "feather-icons-react";
+import { Copy, Trash2, Check } from "feather-icons-react";
 import InfoItem from "@/app/components/info-item";
 
 const LS_KEY = "slm_recent_links";
@@ -27,6 +27,8 @@ export default function Page() {
   // 개별 필드 에러 상태
   const [urlError, setUrlError] = useState("");
   const [ageError, setAgeError] = useState("");
+
+  const [copiedUrl, setCopiedUrl] = useState("");
 
   // Preview 영역 참조
   const previewRef = useRef<HTMLElement>(null);
@@ -128,6 +130,12 @@ export default function Page() {
 
   const handleDelete = (item: Recent) => {
     deleteLink(item);
+  };
+
+  const handleCopy = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(""), 2000);
   };
 
   useEffect(() => {
@@ -270,12 +278,16 @@ export default function Page() {
                 value={shortUrl}
                 icon={
                   <button
-                    className="cursor-pointer hover:bg-white rounded-b-xl"
-                    onClick={() =>
-                      shortUrl && navigator.clipboard.writeText(shortUrl)
-                    }
+                    className={`cursor-pointer hover:bg-white rounded-b-xl transition-colors ${
+                      copiedUrl === shortUrl ? "text-green-600" : ""
+                    }`}
+                    onClick={() => shortUrl && handleCopy(shortUrl)}
                   >
-                    <Copy size={15} />
+                    {copiedUrl === shortUrl ? (
+                      <Check size={15} />
+                    ) : (
+                      <Copy size={15} />
+                    )}
                   </button>
                 }
               />
@@ -352,23 +364,42 @@ export default function Page() {
                 >
                   <div className="flex gap-1 flex-col truncate text-sm">
                     <span>{r.longUrl}</span>
-                    <span className="text-[#F9CE61] font-bold">
-                      {r.shortUrl}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#F9CE61] font-bold">
+                        {r.shortUrl}
+                      </span>
+                      <button
+                        className={`cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 transition-colors ${
+                          copiedUrl === r.shortUrl
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(r.shortUrl);
+                        }}
+                      >
+                        {copiedUrl === r.shortUrl ? (
+                          <Check size={12} />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-0.5 text-xs text-gray-500 flex flex-wrap items-center justify-between gap-2">
                     <span>Created: {formatToKST(r.createdAt, true)}</span>
                     <span>Expires: {formatToKST(calcExpiresAt(r)!, true)}</span>
                   </div>
                   <button
-                    className="absolute top-2 right-2 rounded-lg px-3 py-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
+                    className="absolute top-2 right-2 rounded-lg p-1.5 text-sm text-red-600 cursor-pointer hover:bg-gray-100"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
                       handleDelete(r);
                     }}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               ))}
