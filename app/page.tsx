@@ -12,6 +12,7 @@ import { DefaultSelect } from "@/app/components/default-select";
 import { Copy, Trash2, Check } from "feather-icons-react";
 import InfoItem from "@/app/components/info-item";
 import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/app/utils/helpers";
 
 const LS_KEY = "slm_recent_links";
 
@@ -118,7 +119,7 @@ export default function Page() {
     }
 
     try {
-      const result = await createLink(url.trim(), age, ageMod);
+      await createLink(url.trim(), age, ageMod);
 
       // url/age만 리셋, 단위는 유지
       setUrl("");
@@ -427,7 +428,12 @@ export default function Page() {
               {recent.map((r) => (
                 <div
                   key={r.id}
-                  className="rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#F9CE61] transition-all duration-200 cursor-pointer"
+                  className={cn(
+                    `rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#F9CE61] transition-all duration-200 cursor-pointer`,
+                    {
+                      "ring-2 ring-[#F9CE61]": selectedId === r.id,
+                    }
+                  )}
                   onClick={() => handleClickItem(r)}
                 >
                   <div className="flex gap-1 flex-col truncate text-sm">
