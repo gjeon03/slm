@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
     const lifeSec = parseInt(expiryResult.expiry_life || "0", 10);
     let expiresAt: string | undefined;
     if (!isNaN(lifeSec) && lifeSec > 0 && createResult.url?.date) {
-      const createdDate = new Date(createResult.url.date);
+      // createResult.url.date가 UTC 형식이 아닐 수 있으므로 UTC로 파싱
+      const createdDate = new Date(createResult.url.date + (createResult.url.date.includes('Z') ? '' : 'Z'));
       expiresAt = new Date(
         createdDate.getTime() + lifeSec * 1000
       ).toISOString();
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       shorturl: createResult.shorturl,
       keyword,
-      created: createResult.url.date,
+      createdAt: createResult.url.date,
       qrLink: `${createResult.shorturl}.qr`,
       expiresAt,
       expiry: { age, ageMod },
