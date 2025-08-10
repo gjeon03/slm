@@ -5,12 +5,13 @@ import { formatToKST } from "@/app/utils/datetime";
 import { useCreateLink } from "@/app/hooks/useCreateLink";
 import { useDeleteLink } from "@/app/hooks/useDeleteLink";
 import { AgeMod, Recent } from "@/app/types";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import DefaultInput from "@/app/components/default-input";
 import { DefaultSelect } from "@/app/components/default-select";
 import { Copy, Trash2, Check } from "feather-icons-react";
 import InfoItem from "@/app/components/info-item";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const LS_KEY = "slm_recent_links";
 
@@ -18,11 +19,15 @@ export default function Page() {
   const [url, setUrl] = useState("");
   const [ageMod, setAgeMod] = useState<AgeMod>("min");
   const [age, setAge] = useState<number>(1);
-  const [shortUrl, setShortUrl] = useState("");
-  const [qrLink, setQrLink] = useState("");
-  const [createdAt, setCreatedAt] = useState("");
-  const [expiresOn, setExpiresOn] = useState("");
   const [recent, setRecent] = useState<Recent[]>([]);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedId = searchParams.get("id") || null;
+  const selectedItem = useMemo(
+    () => recent.find((r) => r.id === selectedId) || null,
+    [recent, selectedId]
+  );
 
   // 개별 필드 에러 상태
   const [urlError, setUrlError] = useState("");
@@ -39,7 +44,10 @@ export default function Page() {
     error: createError,
     setError,
   } = useCreateLink({
-    onSuccess: (item) => setRecent((prev) => [item, ...prev]),
+    onSuccess: (item) => {
+      setRecent((prev) => [item, ...prev]);
+      router.replace(`/?id=${encodeURIComponent(item.id)}`, { scroll: false });
+    },
   });
 
   const { deleteLink } = useDeleteLink({
@@ -112,11 +120,6 @@ export default function Page() {
     try {
       const result = await createLink(url.trim(), age, ageMod);
 
-      setShortUrl(result.shortUrl);
-      setQrLink(result.qrLink);
-      setCreatedAt(result.createdAt);
-      setExpiresOn(result.expiresAt);
-
       // url/age만 리셋, 단위는 유지
       setUrl("");
       setAge(1);
@@ -130,16 +133,23 @@ export default function Page() {
 
   const handleDelete = (item: Recent) => {
     deleteLink(item);
-    setShortUrl("");
-    setQrLink("");
-    setCreatedAt("");
-    setExpiresOn("");
+    if (selectedId === item.id) router.replace("/", { scroll: false });
   };
 
   const handleCopy = (url: string) => {
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     setTimeout(() => setCopiedUrl(""), 2000);
+  };
+
+  const handleClickItem = (item: Recent) => {
+    router.replace(`/?id=${encodeURIComponent(item.id)}`, { scroll: false });
+
+    // 스크롤
+    previewRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   useEffect(() => {
@@ -159,6 +169,17 @@ export default function Page() {
       localStorage.setItem(LS_KEY, JSON.stringify(recent.slice(0, 100)));
     } catch {}
   }, [recent]);
+
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id || recent.length === 0) return;
+
+    const found = recent.find((x) => x.id === id);
+    if (!found) {
+      // id가 로컬에 없으면 URL 정리
+      router.replace("/", { scroll: false });
+    }
+  }, [searchParams, recent, router]);
 
   const ageMax = getMaxAge(ageMod);
 
@@ -258,10 +279,10 @@ export default function Page() {
             ref={previewRef}
             className="rounded-xl bg-white shadow-sm p-4 md:p-5 space-y-4 relative"
           >
-            {qrLink ? (
+            {selectedItem ? (
               <div className="grid place-items-center">
                 <Image
-                  src={qrLink}
+                  src={selectedItem.qrLink || ""}
                   alt="QR Code"
                   width={176}
                   height={176}
@@ -277,16 +298,43 @@ export default function Page() {
             )}
             <div className="space-y-2">
               <InfoItem
-                title="Short Link"
-                value={shortUrl}
+                title="Long URL"
+                value={selectedItem?.longUrl}
                 icon={
                   <button
                     className={`cursor-pointer hover:bg-white rounded-b-xl transition-colors ${
-                      copiedUrl === shortUrl ? "text-green-600" : ""
+                      copiedUrl === selectedItem?.longUrl
+                        ? "text-green-600"
+                        : ""
                     }`}
-                    onClick={() => shortUrl && handleCopy(shortUrl)}
+                    onClick={() =>
+                      selectedItem?.longUrl && handleCopy(selectedItem.longUrl)
+                    }
                   >
-                    {copiedUrl === shortUrl ? (
+                    {copiedUrl === selectedItem?.longUrl ? (
+                      <Check size={15} />
+                    ) : (
+                      <Copy size={15} />
+                    )}
+                  </button>
+                }
+              />
+              <InfoItem
+                title="Short Link"
+                value={selectedItem?.shortUrl}
+                icon={
+                  <button
+                    className={`cursor-pointer hover:bg-white rounded-b-xl transition-colors ${
+                      copiedUrl === selectedItem?.shortUrl
+                        ? "text-green-600"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      selectedItem?.shortUrl &&
+                      handleCopy(selectedItem.shortUrl)
+                    }
+                  >
+                    {copiedUrl === selectedItem?.shortUrl ? (
                       <Check size={15} />
                     ) : (
                       <Copy size={15} />
@@ -296,19 +344,31 @@ export default function Page() {
               />
               <InfoItem
                 title="Created At"
-                value={createdAt ? formatToKST(createdAt, true) : "—"}
+                value={
+                  selectedItem?.createdAt
+                    ? formatToKST(selectedItem.createdAt, true)
+                    : "—"
+                }
               />
               <InfoItem
                 title="Expires On"
-                value={expiresOn ? formatToKST(expiresOn, true) : "—"}
+                value={
+                  selectedItem?.expiresAt
+                    ? formatToKST(selectedItem.expiresAt, true)
+                    : "—"
+                }
               />
             </div>
             <div className="flex gap-2">
               <button
                 className="flex-1 rounded-md py-2 border border-gray-200 font-bold cursor-pointer"
                 onClick={() => {
-                  if (shortUrl) {
-                    window.open(shortUrl, "_blank", "noopener,noreferrer");
+                  if (selectedItem?.shortUrl) {
+                    window.open(
+                      selectedItem.shortUrl,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
                   }
                 }}
               >
@@ -316,11 +376,11 @@ export default function Page() {
               </button>
               <a
                 href={
-                  qrLink
+                  selectedItem?.qrLink
                     ? `/api/download-qr?url=${encodeURIComponent(
-                        qrLink
+                        selectedItem.qrLink
                       )}&filename=qr-code-${
-                        shortUrl.split("/").pop() || "download"
+                        selectedItem.shortUrl.split("/").pop() || "download"
                       }.png`
                     : "#"
                 }
@@ -328,7 +388,7 @@ export default function Page() {
                 rel="noopener noreferrer"
                 className="flex-1 border rounded-md py-2 bg-[#F9CE61] text-white font-bold text-center inline-block leading-8"
                 onClick={(e) => {
-                  if (!qrLink) {
+                  if (!selectedItem?.qrLink) {
                     e.preventDefault();
                     return;
                   }
@@ -343,7 +403,9 @@ export default function Page() {
                 e.stopPropagation();
                 e.preventDefault();
 
-                const currentItem = recent.find((r) => r.shortUrl === shortUrl);
+                const currentItem = recent.find(
+                  (r) => r.shortUrl === selectedItem?.shortUrl
+                );
                 if (currentItem) {
                   handleDelete(currentItem);
                 }
@@ -366,18 +428,7 @@ export default function Page() {
                 <div
                   key={r.id}
                   className="rounded-xl shadow-md bg-white p-3 flex flex-col gap-3 relative hover:ring-2 hover:ring-[#F9CE61] transition-all duration-200 cursor-pointer"
-                  onClick={() => {
-                    setShortUrl(r.shortUrl);
-                    setQrLink(r.qrLink || `${r.shortUrl}.qr`);
-                    setCreatedAt(r.createdAt);
-                    setExpiresOn(r.expiresAt || "");
-
-                    // Preview 영역으로 스크롤
-                    previewRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }}
+                  onClick={() => handleClickItem(r)}
                 >
                   <div className="flex gap-1 flex-col truncate text-sm">
                     <span>{r.longUrl}</span>

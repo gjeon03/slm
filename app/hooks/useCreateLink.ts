@@ -48,6 +48,7 @@ export function useCreateLink({ onSuccess }: UseCreateLinkOptions) {
 
       onSuccess?.(item);
       return {
+        id: item.id,
         shortUrl: short,
         qrLink: qr,
         createdAt: createdISO,
