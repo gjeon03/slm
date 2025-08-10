@@ -1,43 +1,344 @@
-export default function Home() {
+"use client";
+
+import { calcExpiresAt, isExpired } from "@/app/utils/expire";
+import { formatToKST } from "@/app/utils/datetime";
+import {
+  cn,
+  labelOf,
+  INPUT_BASE_STYLES,
+  INPUT_ERROR_STYLES,
+  INPUT_NORMAL_STYLES,
+} from "@/app/utils/helpers";
+import { InfoBox } from "@/app/components/InfoBox";
+import { useCreateLink } from "@/app/hooks/useCreateLink";
+import { useDeleteLink } from "@/app/hooks/useDeleteLink";
+import { AgeMod, Recent } from "@/app/types";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+
+const LS_KEY = "slm_recent_links";
+
+export default function Page() {
+  const [url, setUrl] = useState("");
+  const [ageMod, setAgeMod] = useState<AgeMod>("min");
+  const [age, setAge] = useState<number>(1);
+  const [shortUrl, setShortUrl] = useState("");
+  const [qrLink, setQrLink] = useState("");
+  const [createdAt, setCreatedAt] = useState("");
+  const [expiresOn, setExpiresOn] = useState("");
+  const [recent, setRecent] = useState<Recent[]>([]);
+
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://slm.to";
+
+  const { createLink, loading, error, setError } = useCreateLink({
+    onSuccess: (item) => setRecent((prev) => [item, ...prev]),
+    origin,
+  });
+
+  const { deleteLink } = useDeleteLink({
+    onSuccess: (item) =>
+      setRecent((prev) => prev.filter((x) => x.id !== item.id)),
+  });
+
+  const MAX_BY_MOD: Record<AgeMod, number> = {
+    min: 43200, // 30일
+    hr: 720, // 30일
+    day: 30,
+  };
+
+  useEffect(() => {
+    // LocalStorage → 상태 복원
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Recent[];
+        if (Array.isArray(parsed)) setRecent(parsed);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    // 상태 → LocalStorage 저장
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(recent.slice(0, 100)));
+    } catch {}
+  }, [recent]);
+
+  const getMaxAge = (mod: AgeMod) => {
+    return MAX_BY_MOD[mod];
+  };
+
+  const clampAge = (next: number, mod: AgeMod) => {
+    const max = getMaxAge(mod);
+    if (Number.isNaN(next) || next < 1) return 1;
+    if (next > max) return max;
+    return next;
+  };
+
+  const onChangeMod = (val: AgeMod) => {
+    setAgeMod(val);
+    setAge((prev) => clampAge(prev, val));
+  };
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    const trimmed = url.trim();
+    if (!trimmed) return setError("URL은 필수입니다.");
+    if (!/^https?:\/\//i.test(trimmed))
+      return setError("http:// 또는 https:// 로 시작해야 합니다.");
+
+    const max = getMaxAge(ageMod);
+    if (!age || age < 1) return setError("만료 숫자를 1 이상으로 입력하세요.");
+    if (age > max)
+      return setError(
+        `${labelOf(ageMod)} 최대 ${max.toLocaleString()}까지 가능합니다.`
+      );
+
+    try {
+      const result = await createLink(trimmed, age, ageMod);
+
+      setShortUrl(result.shortUrl);
+      setQrLink(result.qrLink);
+      setCreatedAt(result.createdAt);
+      setExpiresOn(result.expiresAt);
+
+      // url/age만 리셋, 단위는 유지
+      setUrl("");
+      setAge(1);
+    } catch {
+      // 에러는 이미 createLink 훅에서 처리됨
+    }
+  };
+
+  const handleDelete = (item: Recent) => {
+    deleteLink(item);
+  };
+
+  const qrPlaceholder = useMemo(
+    () => (
+      <div className="w-44 h-44 mx-auto rounded bg-gradient-to-br from-gray-100 to-gray-200 grid place-items-center">
+        <span className="text-xs text-gray-500">QR Preview</span>
+      </div>
+    ),
+    []
+  );
+
+  const ageMax = getMaxAge(ageMod);
+
   return (
-    <div className="flex justify-center h-screen">
-      <div className="flex flex-col  max-w-3xl w-full gap-2">
-        <div className="flex gap-2 mt-3 ml-3">
-          <h1 className="text-5xl font-extrabold text-[#FBFBFB] text-outline">
-            SLM
-          </h1>
-          <div className="flex items-end text-[#FBFBFB] text-outline">
-            <span>Short Link Manager</span>
+    <div className="min-h-dvh bg-white text-gray-900">
+      <div className="mx-auto w-full max-w-md p-4 md:p-6 space-y-6">
+        {/* Header */}
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-blue-600" />
+            <span className="font-semibold tracking-tight">SLM</span>
           </div>
-        </div>
-        <div className="flex bg-white flex-1 rounded-t-3xl p-6 flex-col gap-2 shadow-xl">
-          <div className="flex gap-2">
-            <div className="border-2 px-2 rounded-md w-14 flex justify-center border-[#ffddae]">
-              100
-            </div>
-            <ul className="flex gap-1">
-              <li className="border rounded-md w-12 flex justify-center items-center border-[#ffddae]">
-                min
-              </li>
-              <li className="border rounded-md w-12 flex justify-center items-center border-[#ffddae]">
-                hour
-              </li>
-              <li className="border border-[#ffddae] rounded-md w-12 flex justify-center items-center bg-[#ffddae]">
-                day
-              </li>
-            </ul>
+          <button
+            className="inline-flex items-center justify-center rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
+            type="button"
+            onClick={() => alert("Menu stub (UI only)")}
+          >
+            ☰
+          </button>
+        </header>
+
+        {/* Form */}
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="rounded-2xl border bg-white shadow-sm p-4 md:p-5 space-y-4"
+        >
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600" htmlFor="url">
+              Enter Long URL
+            </label>
+            <input
+              id="url"
+              type="url"
+              inputMode="url"
+              placeholder="https://example.com/very-long-url"
+              className={cn(
+                INPUT_BASE_STYLES,
+                !!error && !url ? INPUT_ERROR_STYLES : INPUT_NORMAL_STYLES
+              )}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+            />
           </div>
-          <div className="flex gap-1">
-            <div className="flex-1 border-2 border-[#ffddae] rounded-md p-2">
-              input
+
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600" htmlFor="age">
+              Expiration
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="age"
+                type="number"
+                className={cn(INPUT_BASE_STYLES, INPUT_NORMAL_STYLES, "w-1/2")}
+                min={1}
+                max={ageMax}
+                value={age}
+                onChange={(e) =>
+                  setAge(clampAge(Number(e.target.value), ageMod))
+                }
+                required
+              />
+              <select
+                id="ageMod"
+                className={cn(
+                  INPUT_BASE_STYLES,
+                  INPUT_NORMAL_STYLES,
+                  "w-1/2 bg-white"
+                )}
+                value={ageMod}
+                onChange={(e) => onChangeMod(e.target.value as AgeMod)}
+                required
+              >
+                <option value="min">분 (최대 43,200)</option>
+                <option value="hr">시 (최대 720)</option>
+                <option value="day">일 (최대 30)</option>
+              </select>
             </div>
-            <div className="w-30 flex justify-center items-center rounded-md bg-[#ffddae] text-[#FBFBFB] text-outline font-extrabold">
-              Create
+            <p className="text-xs text-gray-500">
+              * 총 만료시간은 30일을 초과할 수 없습니다.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-blue-600 text-white py-2.5 font-medium shadow hover:bg-blue-700 disabled:opacity-60"
+          >
+            {loading ? "Generating..." : "Generate Link"}
+          </button>
+        </form>
+
+        {/* Result */}
+        <section className="rounded-2xl border bg-white shadow-sm p-4 md:p-5 space-y-4">
+          {qrLink ? (
+            <div className="grid place-items-center">
+              <Image 
+                src={qrLink} 
+                alt="QR Code" 
+                width={176} 
+                height={176} 
+                className="w-44 h-44" 
+              />
+            </div>
+          ) : (
+            qrPlaceholder
+          )}
+          <div className="space-y-2">
+            <div>
+              <div className="text-xs text-gray-500">Short Link</div>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  className="w-full rounded-lg border px-2 py-2 text-sm"
+                  readOnly
+                  value={shortUrl}
+                  placeholder="—"
+                />
+                <button
+                  className="shrink-0 rounded-lg border px-3 py-2 text-sm"
+                  onClick={() =>
+                    shortUrl && navigator.clipboard.writeText(shortUrl)
+                  }
+                  type="button"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <InfoBox
+                label="Created At"
+                value={createdAt ? formatToKST(createdAt, true) : "—"}
+              />
+              <InfoBox
+                label="Expires On"
+                value={expiresOn ? formatToKST(expiresOn, true) : "—"}
+              />
             </div>
           </div>
-          <div className="bg-[#ffddae] w-full h-48 rounded-md"></div>
-          <div className="bg-[#ffddae] w-full min-h-80 rounded-md"></div>
-        </div>
+        </section>
+
+        {/* Recent Links (LocalStorage) */}
+        <section className="space-y-3">
+          <h2 className="font-medium">Recent Links</h2>
+          <div className="space-y-2">
+            {recent.length === 0 && (
+              <div className="text-sm text-gray-500">
+                아직 생성된 링크가 없습니다.
+              </div>
+            )}
+            {recent.map((r) => (
+              <div
+                key={r.id}
+                className="rounded-xl border p-3 flex items-center justify-between gap-3"
+              >
+                <button
+                  className="flex-1 text-left"
+                  onClick={() => {
+                    setShortUrl(r.shortUrl);
+                    setQrLink(r.qrLink || `${r.shortUrl}.qr`);
+                    setCreatedAt(r.createdAt);
+                    setExpiresOn(r.expiresAt || "");
+                  }}
+                  title="Preview에서 보기"
+                >
+                  <div className="truncate text-sm">{r.longUrl}</div>
+                  <div className="mt-0.5 text-xs text-gray-500 flex flex-wrap items-center gap-2">
+                    <span className="truncate max-w-[140px] sm:max-w-xs">
+                      {r.shortUrl}
+                    </span>
+                    <span>•</span>
+                    <span>Created {formatToKST(r.createdAt, true)}</span>
+                    {calcExpiresAt(r) && (
+                      <>
+                        <span>•</span>
+                        <span>
+                          Expires {formatToKST(calcExpiresAt(r)!, true)}{" "}
+                          {isExpired(r) && "(expired)"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </button>
+
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-sm"
+                    onClick={() => navigator.clipboard.writeText(r.shortUrl)}
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                    onClick={() => handleDelete(r)}
+                    title={isExpired(r) ? "로컬에서 제거" : "서버에서 삭제"}
+                  >
+                    {isExpired(r) ? "Remove" : "Delete"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <footer className="py-8 text-center text-xs text-gray-400">
+          UI Prototype · TailwindCSS · LocalStorage
+        </footer>
       </div>
     </div>
   );
