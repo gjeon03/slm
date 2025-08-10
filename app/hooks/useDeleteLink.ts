@@ -28,7 +28,13 @@ export function useDeleteLink({ onSuccess }: UseDeleteLinkOptions = {}) {
       onSuccess?.(item);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : "삭제 실패";
-      alert(errorMessage);
+
+      console.error("Delete link error:", errorMessage);
+
+      // 만료되어 자동 정리된 경우에도 에러가 발생할 수 있음
+      // alert(errorMessage);
+
+      onSuccess?.(item);
       throw e;
     }
   };
