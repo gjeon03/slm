@@ -1,4 +1,4 @@
-# SLM — Short Link Manager
+# SLM — Simple Link Manager
 
 SLM은 YOURLS를 백엔드로 사용하고, Next.js 프론트엔드에서 간편하게 단축 URL을 생성·관리하는 웹 애플리케이션입니다.
 만료일 지정, QR 코드 다운로드, 최근 링크 로컬 저장소 관리 기능을 제공합니다.
