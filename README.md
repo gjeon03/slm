@@ -15,7 +15,7 @@ QR 코드 생성 — 단축 링크 QR 미리보기 및 PNG 저장
 
 ## 기술 스택
 
-Frontend: Next.js 14, React, Tailwind CSS
+Frontend: Next.js 15, React, Tailwind CSS
 
 Backend: YOURLS (PHP), MySQL
 
